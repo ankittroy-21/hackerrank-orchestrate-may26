@@ -3,6 +3,7 @@
 .env.local
 *.pem
 *.key
+local_storage/
 
 # deps
 node_modules/

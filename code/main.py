@@ -1,25 +1,14 @@
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
-from rich.console import Console
-from rich.panel import Panel
-from ingestion.embedder import embed_corpus
 from pipeline.runner import run
+from ingestion.embedder import embed_corpus
+import warnings
 
-console = Console()
+warnings.filterwarnings("ignore")
 
 def main():
-    console.print(Panel.fit(
-        "[bold cyan]HackerRank Orchestrate[/bold cyan]\n"
-        "[white]Multi-Domain Support Triage Agent[/white]\n"
-        "[dim]Domains: HackerRank · Claude · Visa[/dim]",
-        border_style="cyan"
-    ))
-
-    console.print("\n[yellow]Step 1: Checking corpus...[/yellow]")
+    print("Step 1: Checking corpus...")
     embed_corpus()
-
-    console.print("\n[yellow]Step 2: Running triage pipeline...[/yellow]")
+    
+    print("\nStep 2: Running triage pipeline...")
     run()
 
 if __name__ == "__main__":

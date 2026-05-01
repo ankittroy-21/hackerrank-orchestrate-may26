@@ -2,18 +2,14 @@ import json
 import os
 import sys
 from pathlib import Path
-
-# Add parent directory to path so we can import config
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
+from agent.cache import check_cache, save_to_cache
 from config import LLM_MODEL, COMPANIES
 from agent.schemas import TriageOutput, TriageInput
 from agent.safety import check_safety
 from agent.retriever import retrieve, infer_company
 from agent.prompts import SYSTEM_PROMPT, build_user_prompt
 from dotenv import load_dotenv
-
-# Import Groq instead of google.genai
 from groq import Groq
 
 load_dotenv()
@@ -46,7 +42,10 @@ def triage(issue: str, subject: str = "", company: str = "None") -> TriageOutput
         resolved_company = infer_company(issue)
 
     # Step 3: Retrieve chunks
-    chunks = retrieve(issue, company=resolved_company)
+    chunks = retrieve(issue, company=resolved_company or "None")
+    cached_result = check_cache(issue, resolved_company)
+    if cached_result:
+        return cached_result
 
     if not chunks:
         return TriageOutput(
@@ -88,14 +87,28 @@ def triage(issue: str, subject: str = "", company: str = "None") -> TriageOutput
         if "thought_process" not in data:
             data["thought_process"] = "LLM generated response but omitted thought process."
             
-        return TriageOutput(**data)
+        final_output = TriageOutput(**data)
+        save_to_cache(issue, resolved_company, final_output)
+        return final_output
         
     except Exception as e:
+        error_msg = str(e)
+        # 1. Specific Fallback for Invalid API Keys (401)
+        if "401" in error_msg or "Invalid API Key" in error_msg:
+            return TriageOutput(
+                thought_process="CRITICAL ERROR: The provided Groq API key is invalid or missing. Defaulting to safe escalation.",
+                status="escalated",
+                product_area="system_error", 
+                response="Our automated triage system is currently experiencing configuration issues. Escalating to human support immediately.",
+                justification="LLM Authentication Error: 401 Invalid API Key.",
+                request_type="product_issue"
+            )  
+        # 2. General Fallback for all other LLM crashes (Rate Limits, Model down, etc.)
         return TriageOutput(
             thought_process="An error occurred during LLM generation. Defaulting to safe escalation.",
             status="escalated",
             product_area=product_area,
             response="An error occurred while processing your request. A support agent will assist you.",
-            justification=f"LLM error: {str(e)}",
+            justification=f"LLM error: {error_msg}",
             request_type="product_issue"
         )

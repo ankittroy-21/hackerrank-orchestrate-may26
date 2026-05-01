@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import os
 REPO_ROOT = Path(__file__).parent.parent
 DATA_DIR  = REPO_ROOT / "data"
 
@@ -37,5 +37,5 @@ ALLOWED_STATUS       = {"replied", "escalated"}
 ALLOWED_REQUEST_TYPE = {"product_issue", "feature_request", "bug", "invalid"}
 
 # Semantic Caching Config
-CACHE_COLLECTION = "triage_cache"
+CACHE_COLLECTION = "triage_cache_v2"
 CACHE_THRESHOLD = 0.25 # Lower is stricter. 0.25 means "very similar meaning"
